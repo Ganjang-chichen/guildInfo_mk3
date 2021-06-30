@@ -1,18 +1,19 @@
+import re
 from tkinter import *
 from PIL import Image, ImageTk
 import json
 import os
 import copy
 
-from function import database
 from function import excel_ctl
 from function import week_calc
 
 World = "29"
 guild_name = "Lune"
 guild_data = {}
-guild_data_path = "./jsondata/" + World + "/" + guild_name + "/charData.json"
-guild_imgData_path = "./img/" + World + "/" + guild_name + "/"
+guild_data_path = "./jsondata/charData.json"
+guild_imgData_path = "./img/charImg/"
+excel_path = "./ExcelFile/text.xlsx"
 
 def createFolder(directory):
     try:
@@ -24,9 +25,17 @@ def createFolder(directory):
 def get_chardata() :
     if os.path.exists(guild_data_path):
         global guild_data
+        global World
+        global guild_name
+        global excel_path
+
         with open(guild_data_path, 'r', encoding="UTF8") as f:
             json_data = json.load(f)
         guild_data = json_data
+        World = guild_data["World"]
+        guild_name = guild_data["GuildName"]
+        excel_path = "./ExcelFile/" + guild_name + ".xlsx"
+
         return True
     else :
         return False
@@ -34,8 +43,14 @@ def get_chardata() :
 # Boot seq -------------------------------------------------------------------------------------------
 isCharDataExist = get_chardata()
 
-createFolder("./testExcelFile")
+createFolder("./ExcelFile")
+excel_ctl.file_path = excel_path
 wb = excel_ctl.createExcel_if_not_exist()
+thisWeekString = week_calc.get_week_range(week_calc.get_weekinfo(0))
+if thisWeekString in wb.sheetnames :
+    1
+else :
+    excel_ctl.createSheet_if_not_exist(wb, thisWeekString, guild_data)
 
 root = Tk()
 root.title("guild manager")
@@ -74,10 +89,21 @@ def reset() :
 
 # 주간 기록 입력 창----------------------------------------------------------------------------
 # 주간 기록 전용 변수
-Selected_week = StringVar()
-selected_sheet = False
+Selected_week = StringVar() # 주차 선택 값
+selected_sheet = False      # 주차 엑셀 차트
+char_page_num = 0           # 페이지 넘버 show_charinfo() 에서 사용
 
-def add_line(idx, data):
+def onclick_input_log(self, row, col, value) :
+    selected_sheet.cell(row=row, column=col).value = value
+    wb.save(excel_ctl.file_path)
+    
+
+def onEnter_input_log(e, row, col, value) :
+    selected_sheet.cell(row=row, column=col).value = int(value)
+    wb.save(excel_ctl.file_path)
+    
+
+def add_line(idx, data, row_num):
     global main_fraim
     char_name = data
     char_img = char_img_dict[char_name]
@@ -89,32 +115,34 @@ def add_line(idx, data):
 
     selected_w = IntVar()
     option_w = [0, 1, 2, 3, 4, 5]
-    drop_w = OptionMenu(main_fraim, selected_w, *option_w)
+    drop_w = OptionMenu(main_fraim, selected_w, *option_w, command=lambda self : onclick_input_log(self, row=row_num, col=2, value=selected_w.get()))
     drop_w.grid(row=(2 * idx), column=1)
+    selected_w.set(int(selected_sheet.cell(row=row_num, column=2).value))
 
     entry_s = Entry(main_fraim, width=5)
+    entry_s.bind('<Return>', lambda e : onEnter_input_log(e, row=row_num, col=3, value=entry_s.get()))
     entry_s.grid(row=(2 * idx), column=2)
-    entry_s.insert(0, "0")
+    entry_s.insert(0, selected_sheet.cell(row=row_num, column=3).value)
 
     selected_f = IntVar()
     option_f = [0, 100, 200, 250, 350, 400, 450, 550, 650, 800, 1000]
-    drop_f = OptionMenu(main_fraim, selected_f, *option_f)
+    drop_f = OptionMenu(main_fraim, selected_f, *option_f, command=lambda self : onclick_input_log(self, row=row_num, col=4, value=selected_f.get()))
     drop_f.grid(row=(2 * idx), column=3)
+    selected_f.set(int(selected_sheet.cell(row=row_num, column=4).value))
 
-char_page_num = 0
 def show_charinfo(page_num) :
     global selected_sheet
     char_count = len(char_img_dict)
     if (char_count // 3) == page_num :
         if char_count % 3 == 1 :
-            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
+            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value, 3 * page_num + 2)
         elif char_count % 3 == 2 :
-            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
-            add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value)
+            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value, 3 * page_num + 2)
+            add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value, 3 * page_num + 3)
     else :
-        add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
-        add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value)
-        add_line(3, selected_sheet.cell(row=(3 * page_num + 4),column=1).value)
+        add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value, 3 * page_num + 2)
+        add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value, 3 * page_num + 3)
+        add_line(3, selected_sheet.cell(row=(3 * page_num + 4),column=1).value, 3 * page_num + 4)
 
 def back_btn_charinfo() :
     global char_page_num
@@ -135,6 +163,9 @@ def forward_btn_charinfo() :
         char_page_num = char_page_num + 1
         show_log_window()
 
+def alter_date(self) :
+    show_log_window()
+
 def show_log_window():
     reset()
 
@@ -149,7 +180,7 @@ def show_log_window():
     
     if Selected_week.get() == '' :
         Selected_week.set(sheet_names_reverse[0])
-    week_select = OptionMenu(main_fraim, Selected_week, *sheet_names_reverse)
+    week_select = OptionMenu(main_fraim, Selected_week, *sheet_names_reverse, command=alter_date)
     week_select.grid(row=0, column=1, columnspan=3)
     
 
@@ -216,5 +247,6 @@ windowCtl_menu = Menu(main_menu)
 main_menu.add_cascade(label="화면이동", menu=windowCtl_menu)
 windowCtl_menu.add_command(label="첫 화면", command=show_mainframe)
 windowCtl_menu.add_command(label="설정 화면",command=show_config)
+windowCtl_menu.add_command(label="입력 화면",command=show_log_window)
 
 root.mainloop()

@@ -107,7 +107,7 @@ def make_guild_data_mk2 (GuildName, World) :
             i = i + 1   
 
         if isExist == False :
-            return "No data"
+            return "No Data"
             
         page_num = 1
         data = []
@@ -171,36 +171,48 @@ def make_guild_data_mk2 (GuildName, World) :
     return data
 
 def init() :
-    #print("길드명을 입력하시오.")
-    #GuildName = input()
-    #print("월드를 입력하시오")
-    #World = input()
+    print("길드명을 입력하시오.")
+    GuildName = input()
+    print("월드를 입력하시오")
+    World = input()
+    
+    if WorldID.get(World) == None :
+        print("월드 이름이 잘 못 되었습니다.")
+        time.sleep(3)
+        return
     
     WorldNo = str(WorldID[World])
     
     data =  make_guild_data_mk2(GuildName, WorldNo)
     
+    if data == 'No Data' :
+        print("길드 이름이 잘 못 되었습니다.")
+        time.sleep(3)
+        return
+
     file_data = OrderedDict()
     
     file_data["GuildName"] = GuildName
     file_data["World"] = World
     file_data["charData"] = data
     
-    createFolder('./jsonData/' + WorldNo + '/' + GuildName)
-    with open('./jsonData/' + WorldNo + '/' + GuildName + '/charData.json', 'w', encoding="utf-8") as make_file:
+    createFolder('./jsonData/')
+    with open('./jsonData/charData.json', 'w', encoding="utf-8") as make_file:
         json.dump(file_data, make_file, ensure_ascii=False, indent="\t")
 
-    createFolder('./img/' + WorldNo + '/' + GuildName)
+    createFolder('./img/charImg/')
     for char_data in data :
-        
         url = char_data["img_src"]
-        urllib.request.urlretrieve(url,'./img/' + WorldNo + '/' + GuildName + "/" + char_data["name"] + ".png")
+        urllib.request.urlretrieve(url,'./img/charImg/' + char_data["name"] + ".png")
+        print(char_data["name"] + ".png")
         time.sleep(0.3)
     
+    print("fin")
+    time.sleep(1)
     return "fin"
 
-GuildName = "Lune"
-World =  str("이노시스")
+GuildName = ""
+World =  ""
 
 
 

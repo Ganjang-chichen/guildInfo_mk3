@@ -6,7 +6,7 @@ import json
 
 #import week_calc
 
-file_path = "./testExcelFile/test.xlsx"
+file_path = "./ExcelFile/test.xlsx"
 
 World = "29"
 guild_name = "Lune"
@@ -51,39 +51,67 @@ def createSheet_if_not_exist(wb, sheet_name, guild_data) :
         sheet.cell(row=1, column=3).value = "수로"
         sheet.cell(row=1, column=4).value = "플래그"
 
-        sheet.cell(row=1, column=7).value = "구분"
-        sheet.cell(row=2, column=7).value = "참가자 수"
-        sheet.cell(row=3, column=7).value = "점수 평균"
-        sheet.cell(row=4, column=7).value = "참가자 평균"
-        sheet.cell(row=5, column=7).value = "점수 합산"
+        sheet.merge_cells(start_row=1, end_row=1, start_column=7, end_column=10)
+        sheet.cell(row=1, column=7).value = "이번주"
 
-        sheet.cell(row=1, column=8).value = "주간미션"
-        sheet.cell(row=1, column=9).value = "수로 "
-        sheet.cell(row=1, column=10).value = "플래그"
+        sheet.cell(row=2, column=7).value = "구분"
+        sheet.cell(row=3, column=7).value = "참가자 수"
+        sheet.cell(row=4, column=7).value = "점수 평균"
+        sheet.cell(row=5, column=7).value = "참가자 평균"
+        sheet.cell(row=6, column=7).value = "점수 합산"
 
-        sheet.cell(row=2, column=8).value = '=COUNTIF(B2:B201,">0")'
-        sheet.cell(row=2, column=9).value = '=COUNTIF(C2:C201,">0")'
-        sheet.cell(row=2, column=10).value = '=COUNTIF(D2:D201,">0")'
+        sheet.cell(row=2, column=8).value = "주간미션"
+        sheet.cell(row=2, column=9).value = "수로 "
+        sheet.cell(row=2, column=10).value = "플래그"
 
-        sheet.cell(row=3, column=8).value = '=AVERAGE(B2:B201)'
-        sheet.cell(row=3, column=9).value = '=AVERAGE(C2:C201)'
-        sheet.cell(row=3, column=10).value = '=AVERAGE(D2:D201)'
+        sheet.cell(row=3, column=8).value = '=COUNTIF(B2:B201,">0")'
+        sheet.cell(row=3, column=9).value = '=COUNTIF(C2:C201,">0")'
+        sheet.cell(row=3, column=10).value = '=COUNTIF(D2:D201,">0")'
 
-        sheet.cell(row=4, column=8).value = '=AVERAGEIF(B2:B201,">0")'
-        sheet.cell(row=4, column=9).value = '=AVERAGEIF(C2:C201,">0")'
-        sheet.cell(row=4, column=10).value = '=AVERAGEIF(D2:D201,">0")'
+        sheet.cell(row=4, column=8).value = '=AVERAGE(B2:B201)'
+        sheet.cell(row=4, column=9).value = '=AVERAGE(C2:C201)'
+        sheet.cell(row=4, column=10).value = '=AVERAGE(D2:D201)'
 
-        sheet.cell(row=5, column=8).value = '=SUM(B2:B201)'
-        sheet.cell(row=5, column=9).value = '=SUM(C2:C201)'
-        sheet.cell(row=5, column=10).value = '=SUM(D2:D201)'
+        sheet.cell(row=5, column=8).value = '=AVERAGEIF(B2:B201,">0")'
+        sheet.cell(row=5, column=9).value = '=AVERAGEIF(C2:C201,">0")'
+        sheet.cell(row=5, column=10).value = '=AVERAGEIF(D2:D201,">0")'
+
+        sheet.cell(row=6, column=8).value = '=SUM(B2:B201)'
+        sheet.cell(row=6, column=9).value = '=SUM(C2:C201)'
+        sheet.cell(row=6, column=10).value = '=SUM(D2:D201)'
         
-        barchart = BarChart()
-        chartData = Reference(sheet, min_col=7, max_col=10, min_row=1, max_row=5)
-        chart_category = Reference(sheet, min_col=7, min_row=2, max_row=5)
-        barchart.add_data(chartData, titles_from_data=True)
-        barchart.set_categories(chart_category)
+        if len(wb.sheetnames) != 2 :
+            last_sheet_name = wb.sheetnames[len(wb.sheetnames) - 2]
+            sheet.merge_cells(start_row=1, end_row=1, start_column=12, end_column=15)
+            sheet.cell(row=1, column=12).value = "저번주"
 
-        sheet.add_chart(barchart, 'G9')
+            sheet.cell(row=2, column=12).value = "구분"
+            sheet.cell(row=3, column=12).value = "참가자 수"
+            sheet.cell(row=4, column=12).value = "점수 평균"
+            sheet.cell(row=5, column=12).value = "참가자 평균"
+            sheet.cell(row=6, column=12).value = "점수 합산"
+
+            sheet.cell(row=2, column=13).value = "주간미션"
+            sheet.cell(row=2, column=14).value = "수로 "
+            sheet.cell(row=2, column=15).value = "플래그"
+
+            sheet.cell(row=3, column=13).value = "='" + last_sheet_name + "'!H3"
+            sheet.cell(row=3, column=14).value = "='" + last_sheet_name + "'!I3"
+            sheet.cell(row=3, column=15).value = "='" + last_sheet_name + "'!J3"
+
+            sheet.cell(row=4, column=13).value = "='" + last_sheet_name + "'!H4"
+            sheet.cell(row=4, column=14).value = "='" + last_sheet_name + "'!I4"
+            sheet.cell(row=4, column=15).value = "='" + last_sheet_name + "'!J4"
+
+            sheet.cell(row=5, column=13).value = "='" + last_sheet_name + "'!H5"
+            sheet.cell(row=5, column=14).value = "='" + last_sheet_name + "'!I5"
+            sheet.cell(row=5, column=15).value = "='" + last_sheet_name + "'!J5"
+
+            sheet.cell(row=6, column=13).value = "='" + last_sheet_name + "'!H6"
+            sheet.cell(row=6, column=14).value = "='" + last_sheet_name + "'!I6"
+            sheet.cell(row=6, column=15).value = "='" + last_sheet_name + "'!J6"
+
+
 
         i = 0
         for rowData in guild_data['charData'] :

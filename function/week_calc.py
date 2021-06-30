@@ -32,3 +32,7 @@ if __name__ == '__main__' :
     info = get_weekinfo(1)
     print(info)
     print(info.get("fff"))
+    d = {"hello" : 1}
+   
+    if d.get("e") == None:
+        print("n")
