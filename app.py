@@ -1,6 +1,9 @@
 import re
 from tkinter import *
 from PIL import Image, ImageTk
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy
 import json
 import os
 import copy
@@ -64,6 +67,7 @@ main_fraim.pack()
 # img setting
 setting_button_img = ImageTk.PhotoImage(Image.open("./img/gear1.png"))
 create_log_button_img = ImageTk.PhotoImage(Image.open("./img/slime-export.png"))
+show_summary_chart_img = ImageTk.PhotoImage(Image.open("./img/graph.png"))
 
 char_img_dict = {}
 
@@ -92,22 +96,100 @@ def reset() :
 Selected_week = StringVar() # 주차 선택 값
 selected_sheet = False      # 주차 엑셀 차트
 char_page_num = 0           # 페이지 넘버 show_charinfo() 에서 사용
+selected_sorting_mode = StringVar() # sorting
+selected_sorting_mode.set("기본 : 직위 -> Lv 순")
+
+def isExist(x) :
+    if x > 0 :
+        return 1
+    else :
+        return 0
 
 def onclick_input_log(self, row, col, value) :
     selected_sheet.cell(row=row, column=col).value = value
     wb.save(excel_ctl.file_path)
     
-
 def onEnter_input_log(e, row, col, value) :
     selected_sheet.cell(row=row, column=col).value = int(value)
     wb.save(excel_ctl.file_path)
     
+def show_charlog_graph(char_name) :
+    date_list = []
+    char_weekly_mission = []
+    char_suro = []
+    char_flag = []
+    for sheet_name in wb.sheetnames :
+        if sheet_name == "Sheet" :
+            continue
+        else :
+            temp_sheet = wb[sheet_name]
+            temp_idx = 0
+            isLogExist = False
+            for temp_A in temp_sheet['A'] :
+                if temp_A.value == char_name :
+                    isLogExist = True
+                    break
+                temp_idx = temp_idx + 1
+            if isLogExist :
+                date_list.append(sheet_name.split("-")[1])
+                char_weekly_mission.append(temp_sheet['B' + str(temp_idx + 1)].value)
+                char_suro.append(temp_sheet['C' + str(temp_idx + 1)].value)
+                char_flag.append(temp_sheet['D' + str(temp_idx + 1)].value)
 
-def add_line(idx, data, row_num):
+    isJoined_wList = list(map(isExist, char_weekly_mission))
+    isJoined_sList = list(map(isExist, char_suro))
+    isJoined_fList = list(map(isExist, char_flag))
+
+    main_graph = plt.figure(constrained_layout=True, figsize=(12, 8))
+    plt.rc('font', family="Malgun Gothic")
+    spec4 = main_graph.add_gridspec(ncols=4, nrows=4)
+
+    graph_char_img = mpimg.imread(guild_imgData_path + char_name + ".png")
+    main_graph.add_subplot(spec4[0, 0])
+    plt.imshow(graph_char_img)
+
+    bar_distribute = numpy.arange(len(date_list))
+
+    main_graph.add_subplot(spec4[0, 1:])
+    plt.bar(bar_distribute-0.0, isJoined_wList, label="주간 미션", width=0.03)
+    plt.bar(bar_distribute+0.03, isJoined_sList, label="수로", width=0.03)
+    plt.bar(bar_distribute+0.06, isJoined_fList, label="플래그", width=0.03)
+    plt.xticks(bar_distribute, date_list)
+    plt.title(label="참가 여부")
+    plt.legend()
+
+    main_graph.add_subplot(spec4[1, :])
+    plt.plot(date_list, char_weekly_mission, label="주간 미션")
+    plt.title(label="주간 미션 점수")
+    plt.legend()
+
+    main_graph.add_subplot(spec4[2, :])
+    plt.plot(date_list, char_suro, label="수로")
+    plt.title(label="수로 점수")
+    plt.legend()
+
+    main_graph.add_subplot(spec4[3, :])
+    plt.plot(date_list, char_flag, label="플래그")
+    plt.title(label="플래그 점수")
+    plt.legend()
+
+    plt.suptitle(char_name)
+    plt.show()
+
+def add_line(idx, data):
     global main_fraim
+    global selected_sheet
+
+    row_num = 1
+    for cell in selected_sheet["A"] :
+        if cell.value == data :
+            break
+        else :
+            row_num = row_num + 1
+
     char_name = data
     char_img = char_img_dict[char_name]
-    char_btn = Button(main_fraim, image=char_img, bg="#ffffff")
+    char_btn = Button(main_fraim, image=char_img, bg="#ffffff", command=lambda : show_charlog_graph(char_name))
     char_btn.grid(row=(2 * idx) , column=0)
 
     char_label = Label(main_fraim, text=char_name, bg="#ffffff")
@@ -135,14 +217,14 @@ def show_charinfo(page_num) :
     char_count = len(char_img_dict)
     if (char_count // 3) == page_num :
         if char_count % 3 == 1 :
-            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value, 3 * page_num + 2)
+            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
         elif char_count % 3 == 2 :
-            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value, 3 * page_num + 2)
-            add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value, 3 * page_num + 3)
+            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
+            add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value)
     else :
-        add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value, 3 * page_num + 2)
-        add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value, 3 * page_num + 3)
-        add_line(3, selected_sheet.cell(row=(3 * page_num + 4),column=1).value, 3 * page_num + 4)
+        add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
+        add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value)
+        add_line(3, selected_sheet.cell(row=(3 * page_num + 4),column=1).value)
 
 def back_btn_charinfo() :
     global char_page_num
@@ -169,7 +251,10 @@ def alter_date(self) :
 def show_log_window():
     reset()
 
-    Label(main_fraim, text="기록창", bg="#ffffff").grid(row=0, column=0)
+    sorting_options = ["기본 : 직위 -> Lv 순", "이름순", "Lv 순"]
+    drop_sorting = OptionMenu(main_fraim, selected_sorting_mode, *sorting_options)
+    drop_sorting.grid(row=0, column=0)
+
     sheet_names_reverse = wb.sheetnames[::-1]
     sheet_names_reverse.pop()
 
@@ -214,20 +299,214 @@ def show_log_window():
 
 
 
-def show_config() :
-    reset()
+def show_summary_chart() :
+    date_list = []
+    joined_weekly = []
+    joined_suro = []
+    joined_flag = []
+    avg_weekly = []
+    avg_suro = []
+    avg_flag = []
+    avg_joined_weekly = []
+    avg_joined_suro = []
+    avg_joined_flag = []
+    sum_weekly = []
+    sum_suro =[]
+    sum_flag = []
     
+    for sheet_name in wb.sheetnames :
+        if sheet_name == "Sheet" :
+            continue
+        else :
+            date_list.append(sheet_name.split('-')[1])
+            temp_sheet = wb[sheet_name]
+            
+            temp_weekly_joined = 0
+            temp_weekly_sum = 0
+            for w in temp_sheet["B"] :
+                if w.value == "주간 미션" :
+                    continue
+                else :
+                    temp_weekly_sum  = temp_weekly_sum + int(w.value)
+                    if w.value > 0 :
+                        temp_weekly_joined  = temp_weekly_joined + 1
+            
+            joined_weekly.append(temp_weekly_joined)
+            avg_weekly.append(temp_weekly_sum / (len(temp_sheet["B"]) - 1))
+            if temp_weekly_joined > 0 :
+                avg_joined_weekly.append(temp_weekly_sum / temp_weekly_joined)
+            else :
+                avg_joined_weekly.append(0)
+            sum_weekly.append(temp_weekly_sum)
+
+            temp_suro_joined = 0
+            temp_suro_sum = 0
+            for s in temp_sheet["C"] :
+                if s.value == "수로" :
+                    continue
+                else :
+                    temp_suro_sum  = temp_suro_sum + int(s.value)
+                    if s.value > 0 :
+                        temp_suro_joined  = temp_suro_joined + 1
+            
+            joined_suro.append(temp_suro_joined)
+            avg_suro.append(temp_suro_sum / (len(temp_sheet["C"]) - 1))
+            if temp_suro_joined > 0 :
+                avg_joined_suro.append(temp_suro_sum / temp_suro_joined)
+            else :
+                avg_joined_suro.append(0)
+            sum_suro.append(temp_suro_sum)
+
+            temp_flag_joined = 0
+            temp_flag_sum = 0
+            for f in temp_sheet["D"] :
+                if f.value == "플래그" :
+                    continue
+                else :
+                    temp_flag_sum  = temp_flag_sum + int(f.value)
+                    if f.value > 0 :
+                        temp_flag_joined  = temp_flag_joined + 1
+            
+            joined_flag.append(temp_flag_joined)
+            avg_flag.append(temp_flag_sum / (len(temp_sheet["D"]) - 1))
+            if temp_flag_joined > 0 :
+                avg_joined_flag.append(temp_flag_sum / temp_flag_joined)
+            else :
+                avg_joined_flag.append(0)
+            sum_flag.append(temp_flag_sum)
+            
+    if len(date_list) > 0 :
+        data_count = len(date_list)
+
+        summary_axis_label = ["점수 평균", "참여자 점수 평균"]
+        bar_distribute_summary = numpy.arange(len(summary_axis_label))
+
+        summary_sum_axis_label = ["점수 총합"]
+        bar_distribute_summary_sum = numpy.arange(len(summary_sum_axis_label))
+
+        summary_chart = plt.figure(constrained_layout=True, figsize=(12, 8))
+        plt.rc('font', family="Malgun Gothic")
+        spec2x4 = summary_chart.add_gridspec(ncols=6, nrows=4)
+
+        summary_chart.add_subplot(spec2x4[0, :3])
+        this_week_joined = [joined_weekly[data_count - 1], joined_suro[data_count - 1], joined_flag[data_count - 1]]
+        last_week_joined = [joined_weekly[data_count - 2], joined_suro[data_count - 2], joined_flag[data_count - 2]]
+        joined_axis_label = ["주간미션", "수로", "플래그"]
+        bar_distribute = numpy.arange(len(joined_axis_label))
+        plt.bar(bar_distribute-0.0, this_week_joined, label="이번주", width=0.05)
+        plt.bar(bar_distribute+0.05, last_week_joined, label="저번주", width=0.05)
+        plt.xticks(bar_distribute, joined_axis_label)
+        plt.title(label="이번주/저번주 참여 인원 비교")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[0, 3:5])
+        this_week_weekly = [avg_weekly[data_count - 1], avg_joined_weekly[data_count - 1]]
+        last_week_weekly = [avg_weekly[data_count - 2], avg_joined_weekly[data_count - 2]]
+        plt.bar(bar_distribute_summary-0.0, this_week_weekly, label="이번주", width=0.05)
+        plt.bar(bar_distribute_summary+0.05, last_week_weekly, label="저번주", width=0.05)
+        plt.xticks(bar_distribute_summary, summary_axis_label)
+        plt.title(label="주간미션 평균")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[0, 5])
+        this_week_weekly_sum = [sum_weekly[data_count - 1]]
+        last_week_weekly_sum = [sum_weekly[data_count - 2]]
+        plt.bar(bar_distribute_summary_sum-0.0, this_week_weekly_sum, label="이번주", width=0.05)
+        plt.bar(bar_distribute_summary_sum+0.05, last_week_weekly_sum, label="저번주", width=0.05)
+        plt.xticks(bar_distribute_summary_sum, summary_sum_axis_label)
+        plt.title(label="주간미션 누계")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[1, :2])
+        this_week_suro = [avg_suro[data_count - 1], avg_joined_suro[data_count - 1]]
+        last_week_suro = [avg_suro[data_count - 2], avg_joined_suro[data_count - 2]]
+        plt.bar(bar_distribute_summary-0.0, this_week_suro, label="이번주", width=0.05)
+        plt.bar(bar_distribute_summary+0.05, last_week_suro, label="저번주", width=0.05)
+        plt.xticks(bar_distribute_summary, summary_axis_label)
+        plt.title(label="수로 평균")
+        plt.legend()
+        
+        summary_chart.add_subplot(spec2x4[1, 2])
+        this_week_suro_sum = [sum_suro[data_count - 1]]
+        last_week_suro_sum = [sum_suro[data_count - 2]]
+        plt.bar(bar_distribute_summary_sum-0.0, this_week_suro_sum, label="이번주", width=0.05)
+        plt.bar(bar_distribute_summary_sum+0.05, last_week_suro_sum, label="저번주", width=0.05)
+        plt.title(label="수로 누계")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[1, 3:5])
+        this_week_flag = [avg_flag[data_count - 1], avg_joined_flag[data_count - 1]]
+        last_week_flag = [avg_flag[data_count - 2], avg_joined_flag[data_count - 2]]
+        plt.bar(bar_distribute_summary-0.0, this_week_flag, label="이번주", width=0.05)
+        plt.bar(bar_distribute_summary+0.05, last_week_flag, label="저번주", width=0.05)
+        plt.title(label="플래그 평균")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[1, 5])
+        this_week_flag_sum = [sum_flag[data_count - 1]]
+        last_week_flag_sum = [sum_flag[data_count - 2]]
+        plt.bar(bar_distribute_summary_sum-0.0, this_week_flag_sum, label="이번주", width=0.05)
+        plt.bar(bar_distribute_summary_sum+0.05, last_week_flag_sum, label="저번주", width=0.05)
+        plt.title(label="플래그 누계")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[2, :3])
+        plt.plot(date_list, joined_weekly, label="주간미션 참가자수")
+        plt.plot(date_list, joined_suro, label="수로 참가자수")
+        plt.plot(date_list, joined_flag, label="플래그 참가자수")
+        plt.title(label="참가자 수")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[2, 3:])
+        plt.plot(date_list, sum_weekly, label="주간미션 점수")
+        plt.title(label="주간미션 합계")
+        plt.legend()
+
+        summary_chart.add_subplot(spec2x4[3, :3])
+        plt.plot(date_list, sum_suro, label="수로 점수")
+        plt.title(label="수로 합계")
+        plt.legend()
+        
+        summary_chart.add_subplot(spec2x4[3, 3:])
+        plt.plot(date_list, sum_flag, label="플래그 점수")
+        plt.title(label="플래그 합계")
+        plt.legend()
+
+        plt.suptitle("개요")
+        plt.show()
+    else :
+        summary_chart = plt.figure(constrained_layout=True, figsize=(12, 8))
+        plt.rc('font', family="Malgun Gothic")
+        spec1x3 = summary_chart.add_gridspec(ncols=1, nrows=3)
+        
+        summary_chart.add_subplot(spec1x3[0, 0])
+        plt.plot(date_list, sum_weekly, label="주간미션 점수")
+        plt.title(label="주간미션 합계")
+        plt.legend()
+
+        summary_chart.add_subplot(spec1x3[1, 0])
+        plt.plot(date_list, sum_suro, label="수로 점수")
+        plt.title(label="수로 합계")
+        plt.legend()
+        
+        summary_chart.add_subplot(spec1x3[2, 0])
+        plt.plot(date_list, sum_flag, label="플래그 점수")
+        plt.title(label="플래그 합계")
+        plt.legend()
+
+        plt.suptitle("개요")
+        plt.show()
 
 def show_mainframe() :
     reset()
     global main_fraim
-    global setting_button_img
+    global show_summary_chart_img
     global create_log_button_img
     
-    setting_button = Button(main_fraim, image=setting_button_img, bg="#ffffff")
+    setting_button = Button(main_fraim, image=show_summary_chart_img, bg="#ffffff", command=show_summary_chart)
     setting_button.grid(row=0, column=0)
 
-    setting_label = Label(main_fraim, text="설정", bg="#ffffff")
+    setting_label = Label(main_fraim, text="전체 요약", bg="#ffffff")
     setting_label.grid(row=1, column=0)
 
     
@@ -246,7 +525,6 @@ root.config(menu=main_menu)
 windowCtl_menu = Menu(main_menu)
 main_menu.add_cascade(label="화면이동", menu=windowCtl_menu)
 windowCtl_menu.add_command(label="첫 화면", command=show_mainframe)
-windowCtl_menu.add_command(label="설정 화면",command=show_config)
 windowCtl_menu.add_command(label="입력 화면",command=show_log_window)
 
 root.mainloop()
