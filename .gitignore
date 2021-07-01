@@ -1,9 +1,13 @@
-__pycache__
 
-charImg
-29
+
+
 *.xlsx
+*.spec
 
+__pycache__
+29
+jsonData
 build
 dist
-*.spec
+charImg
+ExcelFile
