@@ -3,3 +3,7 @@ __pycache__
 charImg
 29
 *.xlsx
+
+build
+dist
+*.spec

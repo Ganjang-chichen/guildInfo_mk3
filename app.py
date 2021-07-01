@@ -7,6 +7,8 @@ import numpy
 import json
 import os
 import copy
+import sys
+import time
 
 from function import excel_ctl
 from function import week_calc
@@ -45,6 +47,12 @@ def get_chardata() :
 
 # Boot seq -------------------------------------------------------------------------------------------
 isCharDataExist = get_chardata()
+
+if isCharDataExist == False :
+    print("케릭터 데이터가 존재하지 않습니다.")
+    print("먼저 데이터 다운로드를 실행해주시고 다시 실행해 주세요.")
+    time.sleep(3)
+    sys.exit(0)
 
 createFolder("./ExcelFile")
 excel_ctl.file_path = excel_path
@@ -98,6 +106,11 @@ selected_sheet = False      # 주차 엑셀 차트
 char_page_num = 0           # 페이지 넘버 show_charinfo() 에서 사용
 selected_sorting_mode = StringVar() # sorting
 selected_sorting_mode.set("기본 : 직위 -> Lv 순")
+
+sorted_list = guild_data["charData"]
+sorted_by_lv = sorted(guild_data["charData"], key=lambda data : data["Lv"], reverse=True)
+sorted_by_name = sorted(guild_data["charData"], key=lambda data : data["name"])
+
 
 def isExist(x) :
     if x > 0 :
@@ -180,15 +193,28 @@ def add_line(idx, data):
     global main_fraim
     global selected_sheet
 
+    isExist_inExcel = False
     row_num = 1
     for cell in selected_sheet["A"] :
         if cell.value == data :
+            isExist_inExcel = True
             break
         else :
             row_num = row_num + 1
 
+    if isExist_inExcel == False:
+        selected_sheet["A" + str(row_num)].value = data
+        selected_sheet["B" + str(row_num)].value = 0
+        selected_sheet["C" + str(row_num)].value = 0
+        selected_sheet["D" + str(row_num)].value = 0
+        wb.save(excel_ctl.file_path)
+
     char_name = data
-    char_img = char_img_dict[char_name]
+
+    if char_img_dict[char_name] == None :
+        char_img = setting_button_img
+    else : 
+        char_img = char_img_dict[char_name]
     char_btn = Button(main_fraim, image=char_img, bg="#ffffff", command=lambda : show_charlog_graph(char_name))
     char_btn.grid(row=(2 * idx) , column=0)
 
@@ -214,17 +240,18 @@ def add_line(idx, data):
 
 def show_charinfo(page_num) :
     global selected_sheet
-    char_count = len(char_img_dict)
+
+    char_count = len(sorted_list)
     if (char_count // 3) == page_num :
         if char_count % 3 == 1 :
-            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
+            add_line(1, sorted_list[3 * page_num]["name"])
         elif char_count % 3 == 2 :
-            add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
-            add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value)
+            add_line(1, sorted_list[3 * page_num]["name"])
+            add_line(2, sorted_list[3 * page_num + 1]["name"])
     else :
-        add_line(1, selected_sheet.cell(row=(3 * page_num + 2),column=1).value)
-        add_line(2, selected_sheet.cell(row=(3 * page_num + 3),column=1).value)
-        add_line(3, selected_sheet.cell(row=(3 * page_num + 4),column=1).value)
+        add_line(1, sorted_list[3 * page_num]["name"])
+        add_line(2, sorted_list[3 * page_num + 1]["name"])
+        add_line(3, sorted_list[3 * page_num + 2]["name"])
 
 def back_btn_charinfo() :
     global char_page_num
@@ -245,6 +272,17 @@ def forward_btn_charinfo() :
         char_page_num = char_page_num + 1
         show_log_window()
 
+def alter_mode(self) : 
+    global sorted_list
+    if selected_sorting_mode.get() == "기본 : 직위 -> Lv 순" :
+        sorted_list = guild_data["charData"]
+    elif selected_sorting_mode.get() == "이름순" :
+        sorted_list = sorted_by_name
+    elif selected_sorting_mode.get() == "Lv 순" :
+        sorted_list = sorted_by_lv
+    show_log_window()
+    
+
 def alter_date(self) :
     show_log_window()
 
@@ -252,7 +290,7 @@ def show_log_window():
     reset()
 
     sorting_options = ["기본 : 직위 -> Lv 순", "이름순", "Lv 순"]
-    drop_sorting = OptionMenu(main_fraim, selected_sorting_mode, *sorting_options)
+    drop_sorting = OptionMenu(main_fraim, selected_sorting_mode, *sorting_options, command=alter_mode)
     drop_sorting.grid(row=0, column=0)
 
     sheet_names_reverse = wb.sheetnames[::-1]
@@ -375,7 +413,7 @@ def show_summary_chart() :
                 avg_joined_flag.append(0)
             sum_flag.append(temp_flag_sum)
             
-    if len(date_list) > 0 :
+    if len(date_list) > 1 :
         data_count = len(date_list)
 
         summary_axis_label = ["점수 평균", "참여자 점수 평균"]
@@ -509,12 +547,17 @@ def show_mainframe() :
     setting_label = Label(main_fraim, text="전체 요약", bg="#ffffff")
     setting_label.grid(row=1, column=0)
 
-    
     create_log_button = Button(main_fraim, image=create_log_button_img, bg="#ffffff", command=show_log_window)
     create_log_button.grid(row=0, column=1)
 
     create_log_label = Label(main_fraim, text="이번주 리스트", bg="#ffffff")
     create_log_label.grid(row=1, column=1)
+
+    Label(main_fraim, text="주의사항", bg="#a1131f", foreground="#ffff00").grid(row=2, column=0, columnspan=2)
+    Label(main_fraim, text="이 프로그램 실행 전 데이터 다운로드 후 실행할 것.", bg="#ffffff").grid(row=3, column=0, columnspan=2)
+    Label(main_fraim, text="이 프로그램과 엑셀파일을 동시에 열지 마세요.", bg="#ffffff").grid(row=4, column=0, columnspan=2)
+    Label(main_fraim, text="데이터 입력시 오류가 발생합니다.", bg="#ffffff").grid(row=5, column=0, columnspan=2)
+    
 
 show_mainframe()
 
