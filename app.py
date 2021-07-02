@@ -123,8 +123,12 @@ def onclick_input_log(self, row, col, value) :
     wb.save(excel_ctl.file_path)
     
 def onEnter_input_log(e, row, col, value) :
-    selected_sheet.cell(row=row, column=col).value = int(value)
-    wb.save(excel_ctl.file_path)
+    try :
+        selected_sheet.cell(row=row, column=col).value = int(value)
+        wb.save(excel_ctl.file_path)
+    except :
+        1
+        
     
 def show_charlog_graph(char_name) :
     date_list = []
@@ -233,7 +237,7 @@ def add_line(idx, data):
     entry_s.insert(0, selected_sheet.cell(row=row_num, column=3).value)
 
     selected_f = IntVar()
-    option_f = [0, 100, 200, 250, 350, 400, 450, 550, 650, 800, 1000]
+    option_f = [0, 100, 200, 250, 300, 350, 400, 450, 550, 650, 800, 1000]
     drop_f = OptionMenu(main_fraim, selected_f, *option_f, command=lambda self : onclick_input_log(self, row=row_num, col=4, value=selected_f.get()))
     drop_f.grid(row=(2 * idx), column=3)
     selected_f.set(int(selected_sheet.cell(row=row_num, column=4).value))
