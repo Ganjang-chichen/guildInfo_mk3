@@ -3,6 +3,7 @@
 
 *.xlsx
 *.spec
+*.json
 
 __pycache__
 29

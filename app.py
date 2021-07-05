@@ -1,17 +1,17 @@
-import re
 from tkinter import *
 from PIL import Image, ImageTk
+from tkinter import messagebox
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy
 import json
 import os
-import copy
 import sys
 import time
 
 from function import excel_ctl
 from function import week_calc
+from function import img_capture
 
 World = "29"
 guild_name = "Lune"
@@ -539,6 +539,79 @@ def show_summary_chart() :
         plt.suptitle("개요")
         plt.show()
 
+def scanned_data_to_Excel(entries) :
+    for row in entries :
+        temp_sheet = wb[thisWeekString]
+        isCharExist = False
+        i = 0
+        for cell in temp_sheet["A"] :
+            if cell.value == row[0].get() :
+                isCharExist = True
+                break
+            i += 1
+        if isCharExist :
+            try :
+                temp_sheet['B' + str(i + 1)].value = int(row[1].get())
+                wb.save(excel_ctl.file_path)
+            except :
+                print("주간미션 문자입력 감지")
+            try :
+                temp_sheet['C' + str(i + 1)].value = int(row[2].get())
+                wb.save(excel_ctl.file_path)
+            except :
+                print("수로 문자입력 감지")
+            try :
+                temp_sheet['D' + str(i + 1)].value = int(row[3].get())
+                wb.save(excel_ctl.file_path)
+            except :
+                print("플래그 문자입력 감지")
+        else : 
+            continue
+    messagebox.showinfo("결과", "성공?")
+    show_mainframe()
+    
+        
+
+
+def screen_scanner() :
+    reset()
+    scanned_data = img_capture.init()
+    if scanned_data == False :
+        messagebox.showwarning("오류", "화면 캡쳐 실패")
+        show_mainframe()
+    else :
+        Label(main_fraim, text="닉네임", bg="#ffffff").grid(row=0, column=0)
+        Label(main_fraim, text="주간미션", bg="#ffffff").grid(row=0, column=1)
+        Label(main_fraim, text="수로", bg="#ffffff").grid(row=0, column=2)
+        Label(main_fraim, text="플래그", bg="#ffffff").grid(row=0, column=3)
+
+        scanned_Entry_list = []
+
+        i = 0
+        while i < 17 :
+            scanned_name = Entry(main_fraim, width=15)
+            scanned_name.grid(row=(i + 1), column=0)
+            scanned_name.insert(0, scanned_data[i][0])
+            
+            scanned_weekly_mission = Entry(main_fraim, width=6)
+            scanned_weekly_mission.grid(row=(i + 1), column=1)
+            scanned_weekly_mission.insert(0, scanned_data[i][4])
+
+            scanned_suro = Entry(main_fraim, width=6)
+            scanned_suro.grid(row=(i + 1), column=2)
+            scanned_suro.insert(0, scanned_data[i][5])
+
+            scanned_flag = Entry(main_fraim, width=6)
+            scanned_flag.grid(row=(i + 1), column=3)
+            scanned_flag.insert(0, scanned_data[i][6])
+
+            scanned_Entry_list.append([scanned_name, scanned_weekly_mission, scanned_suro, scanned_flag])
+            i += 1
+        
+        scanned_input_btn = Button(main_fraim, text="입력하기", bg="#ffffff", command=lambda : scanned_data_to_Excel(scanned_Entry_list))
+        scanned_input_btn.grid(row=18, column=0, columnspan=4)
+
+
 def show_mainframe() :
     reset()
     global main_fraim
@@ -557,10 +630,16 @@ def show_mainframe() :
     create_log_label = Label(main_fraim, text="이번주 리스트", bg="#ffffff")
     create_log_label.grid(row=1, column=1)
 
-    Label(main_fraim, text="주의사항", bg="#a1131f", foreground="#ffff00").grid(row=2, column=0, columnspan=2)
-    Label(main_fraim, text="이 프로그램 실행 전 데이터 다운로드 후 실행할 것.", bg="#ffffff").grid(row=3, column=0, columnspan=2)
-    Label(main_fraim, text="이 프로그램과 엑셀파일을 동시에 열지 마세요.", bg="#ffffff").grid(row=4, column=0, columnspan=2)
-    Label(main_fraim, text="데이터 입력시 오류가 발생합니다.", bg="#ffffff").grid(row=5, column=0, columnspan=2)
+    screen_capture_button = Button(main_fraim, image=setting_button_img, bg="#ffffff", command=screen_scanner)
+    screen_capture_button.grid(row=2, column=0, columnspan=2)
+
+    screen_capture_label = Label(main_fraim, text="화면 캡쳐", bg="#ffffff")
+    screen_capture_label.grid(row=3, column=0, columnspan=2)
+
+    Label(main_fraim, text="주의사항", bg="#a1131f", foreground="#ffff00").grid(row=4, column=0, columnspan=2)
+    Label(main_fraim, text="이 프로그램 실행 전 데이터 다운로드 후 실행할 것.", bg="#ffffff").grid(row=5, column=0, columnspan=2)
+    Label(main_fraim, text="이 프로그램과 엑셀파일을 동시에 열지 마세요.", bg="#ffffff").grid(row=6, column=0, columnspan=2)
+    Label(main_fraim, text="데이터 입력시 오류가 발생합니다.", bg="#ffffff").grid(row=7, column=0, columnspan=2)
     
 
 show_mainframe()
