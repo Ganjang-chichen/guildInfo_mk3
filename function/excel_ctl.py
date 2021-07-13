@@ -1,12 +1,17 @@
 import openpyxl
 from openpyxl.chart import BarChart3D, Reference, LineChart
 from openpyxl.chart.axis import DateAxis
+from openpyxl.styles import PatternFill, Border, Font, Side
+from openpyxl.formatting.rule import CellIsRule
 import os
 import math
 import json
 from datetime import date
 
 #import week_calc
+from function import week_calc
+
+SHEET_VERSION = 1.3
 
 file_path = "./ExcelFile/test.xlsx"
 
@@ -47,6 +52,9 @@ def setting_summary_sheet(wb) :
     data_count = len(sheet_names) - 1
     summary_sheet = wb["Sheet"]
 
+    summary_sheet['O2'].value = "version"
+    summary_sheet['O3'].value = SHEET_VERSION
+
     summary_sheet["C64"] = "날짜"
     summary_sheet["D64"] = "참가수"
     summary_sheet["E64"] = "주간미션 합계"
@@ -60,11 +68,11 @@ def setting_summary_sheet(wb) :
         else :
             sundayInt = int(sheet_name.split("-")[1])
             sunday = date((sundayInt // 10000), (((sundayInt - (sundayInt // 10000) * 10000)) // 100), (sundayInt % 100) )
-            summary_sheet["C" + str(65 + i)] = sunday
-            summary_sheet["D" + str(65 + i)] = "=AVERAGE('" + sheet_name + "'!H3, '" + sheet_name + "'!I3, '" + sheet_name + "'!J3)"
-            summary_sheet["E" + str(65 + i)] = "='" + sheet_name + "'!H6"
-            summary_sheet["F" + str(65 + i)] = "='" + sheet_name + "'!I6"
-            summary_sheet["G" + str(65 + i)] = "='" + sheet_name + "'!J6"
+            summary_sheet["F" + str(65 + i)] = sunday
+            summary_sheet["G" + str(65 + i)] = "=AVERAGE('" + sheet_name + "'!H3, '" + sheet_name + "'!I3, '" + sheet_name + "'!J3)"
+            summary_sheet["H" + str(65 + i)] = "='" + sheet_name + "'!H6"
+            summary_sheet["I" + str(65 + i)] = "='" + sheet_name + "'!I6"
+            summary_sheet["J" + str(65 + i)] = "='" + sheet_name + "'!J6"
             i = i + 1
 
     sunday_dateList = Reference(summary_sheet, min_col=3, min_row=65, max_row=(64 + data_count))
@@ -81,7 +89,7 @@ def setting_summary_sheet(wb) :
     average_entry_chart.x_axis.title = "Date"
     average_entry_chart.add_data(average_entry_data, titles_from_data=True)
     average_entry_chart.set_categories(sunday_dateList)
-    summary_sheet.add_chart(average_entry_chart, "C2")
+    summary_sheet.add_chart(average_entry_chart, "F2")
 
     weekly_mission_data = Reference(summary_sheet, min_col=5, max_col=5, min_row=64, max_row=(64 + data_count))
     weekly_mission_chart = LineChart()
@@ -95,7 +103,7 @@ def setting_summary_sheet(wb) :
     weekly_mission_chart.x_axis.title = "Date"
     weekly_mission_chart.add_data(weekly_mission_data, titles_from_data=True)
     weekly_mission_chart.set_categories(sunday_dateList)
-    summary_sheet.add_chart(weekly_mission_chart, "C17")
+    summary_sheet.add_chart(weekly_mission_chart, "F17")
 
     suro_sum_data = Reference(summary_sheet, min_col=6, max_col=6, min_row=64, max_row=(64 + data_count))
     suro_sum_chart = LineChart()
@@ -109,7 +117,7 @@ def setting_summary_sheet(wb) :
     suro_sum_chart.x_axis.title = "Date"
     suro_sum_chart.add_data(suro_sum_data, titles_from_data=True)
     suro_sum_chart.set_categories(sunday_dateList)
-    summary_sheet.add_chart(suro_sum_chart, "C32")
+    summary_sheet.add_chart(suro_sum_chart, "F32")
 
     flag_sum_data = Reference(summary_sheet, min_col=7, max_col=7, min_row=64, max_row=(64 + data_count))
     flag_sum_chart = LineChart()
@@ -123,7 +131,7 @@ def setting_summary_sheet(wb) :
     flag_sum_chart.x_axis.title = "Date"
     flag_sum_chart.add_data(flag_sum_data, titles_from_data=True)
     flag_sum_chart.set_categories(sunday_dateList)
-    summary_sheet.add_chart(flag_sum_chart, "C47")
+    summary_sheet.add_chart(flag_sum_chart, "F47")
 
     wb.save(file_path)
     
@@ -134,7 +142,18 @@ def createSheet_if_not_exist(wb, sheet_name, guild_data) :
     if sheet_name in wb.sheetnames :
         return wb[sheet_name]
     else :
-        sheet = wb.create_sheet(sheet_name)
+        sheet = 0
+        if len(wb.sheetnames) == 1 :
+            sheet = wb.create_sheet(sheet_name)
+        else :
+            sheet_insert_idx = 1
+            while sheet_insert_idx < len(wb.sheetnames) :
+                if int(wb.sheetnames[sheet_insert_idx].split('-')[0]) > int(sheet_name.split('-')[0]) :
+                    break
+                sheet_insert_idx += 1
+            sheet = wb.create_sheet(sheet_name, sheet_insert_idx)    
+
+        
         sheet.cell(row=1, column=1).value = "케릭터 명"
         sheet.cell(row=1, column=2).value = "주간 미션"
         sheet.cell(row=1, column=3).value = "수로"
@@ -168,9 +187,19 @@ def createSheet_if_not_exist(wb, sheet_name, guild_data) :
         sheet.cell(row=6, column=8).value = '=SUM(B2:B201)'
         sheet.cell(row=6, column=9).value = '=SUM(C2:C201)'
         sheet.cell(row=6, column=10).value = '=SUM(D2:D201)'
-        
-        if len(wb.sheetnames) != 2 :
-            last_sheet_name = wb.sheetnames[len(wb.sheetnames) - 2]
+   
+
+        if len(wb.sheetnames) != 1 :
+            week_int = 0
+            while True :
+                temp = week_calc.get_weekinfo(week_int)
+                temp_str = week_calc.get_week_range(temp)
+                
+                if wb.sheetnames[len(wb.sheetnames) - 1] == temp_str:
+                    break
+                week_int += 1
+
+            last_sheet_name = week_calc.get_week_range(week_calc.get_weekinfo(week_int + 1))
             sheet.merge_cells(start_row=1, end_row=1, start_column=12, end_column=15)
             sheet.cell(row=1, column=12).value = "저번주"
 
@@ -285,6 +314,12 @@ def createSheet_if_not_exist(wb, sheet_name, guild_data) :
             sheet.cell(row=(i + 2), column=3).value = 0
             sheet.cell(row=(i + 2), column=4).value = 0
             i = i + 1
+
+            rate_fill = PatternFill(start_color='FF5348', end_color='FF5348', fill_type='solid')
+            rate_font = Font(color="FFFFFF")
+            rate_thin = Side(border_style='thin', color="000000")
+            rate_border = Border(top=rate_thin, left=rate_thin, right=rate_thin, bottom=rate_thin)
+            sheet.conditional_formatting.add('B' + str(i + 1) + ":D" + str(i + 1), CellIsRule(operator='lessThan', formula=[1], fill=rate_fill, font=rate_font, border=rate_border))
 
         setting_summary_sheet(wb)
 
